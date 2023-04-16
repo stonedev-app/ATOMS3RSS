@@ -105,7 +105,6 @@ boolean getRSS()
     {
       char headerLine[512] = {0};
       size_t hrbSize = client.readBytesUntil('\n', headerLine, sizeof(headerLine));
-      ESP_LOGV(TAG, "header: %s", headerLine);
       // timeout
       if (hrbSize == 0)
       {
@@ -114,6 +113,13 @@ boolean getRSS()
         M5.Display.println("受信失敗(1)");
         return false;
       }
+      // remove end '\r'
+      char *endCrChar = strstr(headerLine, "\r");
+      if (endCrChar != NULL)
+      {
+        *endCrChar = '\0';
+      }
+      ESP_LOGV(TAG, "header: %s", headerLine);
       // Get Content length
       char *startPos = strstr(headerLine, "Content-Length: ");
       // if 'Content-Length: ' is included in headerLine
@@ -124,12 +130,6 @@ boolean getRSS()
         // conten length
         char conLenStr[512] = {0};
         strcpy(conLenStr, startPos);
-        // conLenStr's end '\r' to '\0'
-        char *crStr = strstr(conLenStr, "\r");
-        if (crStr != NULL)
-        {
-          *crStr = '\0';
-        }
         // if conLenStr is enable to cast Number
         if (validateNumber(conLenStr))
         {
@@ -137,8 +137,8 @@ boolean getRSS()
         }
         ESP_LOGV(TAG, "content-Length: %d", conLen);
       }
-      // If get header End
-      if (strcmp(headerLine, "\r") == 0)
+      // If headerLine is empty string(response header end)
+      if (strlen(headerLine) == 0)
       {
         ESP_LOGI(TAG, "headers received");
         headRecvFlg = true;
